@@ -1,0 +1,2040 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "默认模块",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "登录模块"
+    },
+    {
+      "name": "聊天模块"
+    },
+    {
+      "name": "个人模块"
+    },
+    {
+      "name": "管理模块"
+    },
+    {
+      "name": "STT"
+    },
+    {
+      "name": "TTS"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "summary": "账号密码登录",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "登录模块"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "title": "用户名"
+                  },
+                  "password": {
+                    "type": "string",
+                    "title": "密码"
+                  }
+                },
+                "required": [
+                  "username",
+                  "password"
+                ]
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "",
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "jwt_token": {
+                      "type": "string",
+                      "title": "Jwt token",
+                      "description": "不带headers头"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code",
+                    "jwt_token"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "summary": "设置新密码",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "登录模块"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "old_password": {
+                    "type": "string",
+                    "description": "旧密码（明文）"
+                  },
+                  "new_password": {
+                    "type": "string",
+                    "description": "新密码（明文）"
+                  }
+                },
+                "required": [
+                  "old_password",
+                  "new_password"
+                ]
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "",
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/refresh-token": {
+      "post": {
+        "summary": "刷新JWT Token",
+        "deprecated": false,
+        "description": "前端用已登录用户身份请求时，签发同样内容的有效期更新的token",
+        "tags": [
+          "登录模块"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "",
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "jwt_token": {
+                      "type": "string",
+                      "title": "Jwt token",
+                      "description": "不带headers头"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code",
+                    "jwt_token"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/chat/send-message/{conversation_id}": {
+      "post": {
+        "summary": "发送聊天信息",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "聊天模块"
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "description": "对话id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "object",
+                    "properties": {
+                      "content_type": {
+                        "type": "string",
+                        "title": "消息类型",
+                        "description": "TEXT | AUDIO | FILE"
+                      },
+                      "content": {
+                        "type": "string",
+                        "title": "消息内容",
+                        "description": "纯文本内容，文件需要通过消息附件表附加"
+                      }
+                    },
+                    "title": "消息",
+                    "required": [
+                      "content_type",
+                      "content"
+                    ]
+                  },
+                  "attachment_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "title": "消息附件列表"
+                  }
+                },
+                "required": [
+                  "message"
+                ]
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "",
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "user_message": {
+                      "$ref": "#/components/schemas/message_detail",
+                      "description": "用户发送的消息"
+                    },
+                    "model_message": {
+                      "$ref": "#/components/schemas/message_detail",
+                      "description": "模型回复的消息"
+                    }
+                  },
+                  "required": [
+                    "user_message",
+                    "model_message",
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/chat/history/{conversation_id}": {
+      "get": {
+        "summary": "获取对话历史记录",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "聊天模块"
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "description": "对话id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "current_page",
+            "in": "query",
+            "description": "当前页面，从1开始",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "页面容量",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/message_detail"
+                      }
+                    },
+                    "total_page": {
+                      "type": "integer",
+                      "title": "总页数"
+                    },
+                    "total_count": {
+                      "type": "integer",
+                      "title": "元素总数"
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "title": "当前页码",
+                      "description": "从1开始"
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "title": "页面容量"
+                    }
+                  },
+                  "required": [
+                    "messages",
+                    "err_msg",
+                    "err_code",
+                    "total_page",
+                    "total_count",
+                    "current_page",
+                    "page_size"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/chat/new-conversation": {
+      "post": {
+        "summary": "新建对话",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "聊天模块"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "title": "对话标题"
+                  },
+                  "system_prompt": {
+                    "type": "string",
+                    "title": "会话级系统提示词",
+                    "description": "可选"
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "conversation": {
+                      "type": "object",
+                      "properties": {
+                        "conversation_id": {
+                          "type": "integer",
+                          "title": "对话id"
+                        },
+                        "title": {
+                          "type": "string",
+                          "title": "对话标题"
+                        },
+                        "status": {
+                          "type": "string",
+                          "title": "对话状态",
+                          "description": "ACTIVE | ARCHIVED | DELETED"
+                        },
+                        "llm_model": {
+                          "type": "string",
+                          "title": "默认模型"
+                        }
+                      },
+                      "required": [
+                        "conversation_id",
+                        "title",
+                        "status",
+                        "llm_model"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "conversation",
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/chat/rename-conversation/{conversation_id}": {
+      "put": {
+        "summary": "重命名对话",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "聊天模块"
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "description": "对话id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "title": "新标题"
+                  }
+                },
+                "required": [
+                  "title"
+                ]
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/chat/delete-conversation/{conversation_id}": {
+      "delete": {
+        "summary": "删除对话",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "聊天模块"
+        ],
+        "parameters": [
+          {
+            "name": "conversation_id",
+            "in": "path",
+            "description": "对话id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/chat/upload-file": {
+      "post": {
+        "summary": "上传附件",
+        "deprecated": false,
+        "description": "上传单个文件接口，多个文件需要多次调用",
+        "tags": [
+          "聊天模块"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "format": "binary",
+                    "type": "string",
+                    "description": "附件",
+                    "example": ""
+                  }
+                }
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "attachment": {
+                      "$ref": "#/components/schemas/attachment_info"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code",
+                    "attachment"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/chat/prompt-preset": {
+      "get": {
+        "summary": "获取预设提示词列表",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "聊天模块"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "prompt_presets": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "title": "提示词名称"
+                          },
+                          "description": {
+                            "type": "string",
+                            "title": "提示词描述"
+                          },
+                          "content": {
+                            "type": "string",
+                            "title": "提示词"
+                          }
+                        },
+                        "required": [
+                          "name",
+                          "description",
+                          "content"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code",
+                    "prompt_presets"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/me/info": {
+      "get": {
+        "summary": "获取个人信息",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "个人模块"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "user_id": {
+                          "type": "integer",
+                          "title": "用户id"
+                        },
+                        "username": {
+                          "type": "string",
+                          "title": "账号",
+                          "description": "仅限中英文"
+                        },
+                        "nickname": {
+                          "type": "string",
+                          "title": "昵称",
+                          "description": "允许中文与emoji"
+                        },
+                        "role": {
+                          "type": "string",
+                          "title": "角色",
+                          "description": "ADMIN | USER"
+                        },
+                        "total_quota": {
+                          "type": "integer",
+                          "title": "Token总配额"
+                        },
+                        "remaining_quota": {
+                          "type": "integer",
+                          "title": "Token余额"
+                        }
+                      },
+                      "required": [
+                        "user_id",
+                        "username",
+                        "nickname",
+                        "role",
+                        "total_quota",
+                        "remaining_quota"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/me/conversations": {
+      "get": {
+        "summary": "获取个人对话列表",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "个人模块"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "conversations": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/conversation_info"
+                      }
+                    }
+                  },
+                  "required": [
+                    "conversations",
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/admin/new-user": {
+      "post": {
+        "summary": "新建用户",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "管理模块"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "title": "账号",
+                    "description": "仅限中英文"
+                  },
+                  "password": {
+                    "type": "string",
+                    "title": "密码"
+                  },
+                  "nickname": {
+                    "type": "string",
+                    "title": "昵称",
+                    "description": "允许中文与emoji"
+                  },
+                  "role": {
+                    "type": "string",
+                    "title": "角色",
+                    "description": "ADMIN | USER"
+                  },
+                  "total_quota": {
+                    "type": "integer",
+                    "title": "Token总配额"
+                  },
+                  "remaining_quota": {
+                    "type": "integer",
+                    "title": "Token余额"
+                  }
+                },
+                "required": [
+                  "username",
+                  "password",
+                  "nickname",
+                  "role",
+                  "total_quota",
+                  "remaining_quota"
+                ]
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/user_detail"
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/admin/delete-user/{user_id}": {
+      "delete": {
+        "summary": "删除用户",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "管理模块"
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "用户id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "summary": "获取用户列表",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "管理模块"
+        ],
+        "parameters": [
+          {
+            "name": "current_page",
+            "in": "query",
+            "description": "当前页码（从1开始）",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "description": "页面容量",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "total_page": {
+                      "type": "integer",
+                      "title": "总页数"
+                    },
+                    "total_count": {
+                      "type": "integer",
+                      "title": "元素总数"
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "title": "当前页码",
+                      "description": "从1开始"
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "title": "页面容量"
+                    },
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/user_detail"
+                      }
+                    }
+                  },
+                  "required": [
+                    "users",
+                    "err_msg",
+                    "err_code",
+                    "total_page",
+                    "total_count",
+                    "current_page",
+                    "page_size"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/admin/set-quota/{user_id}": {
+      "post": {
+        "summary": "更改额度",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "管理模块"
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quota": {
+                    "type": "integer",
+                    "title": "Token配额"
+                  }
+                },
+                "required": [
+                  "quota"
+                ]
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/admin/prompt-preset": {
+      "get": {
+        "summary": "获取预设提示词列表",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "管理模块"
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "prompt_presets": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/prompt_preset"
+                      },
+                      "title": "预设提示词列表"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code",
+                    "prompt_presets"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "新增预设提示词",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "管理模块"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "title": "提示词名称"
+                  },
+                  "description": {
+                    "type": "string",
+                    "title": "提示词描述"
+                  },
+                  "content": {
+                    "type": "string",
+                    "title": "提示词"
+                  }
+                },
+                "required": [
+                  "name",
+                  "description",
+                  "content"
+                ]
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/admin/prompt-preset/{prompt_preset_id}": {
+      "delete": {
+        "summary": "删除预设提示词",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "管理模块"
+        ],
+        "parameters": [
+          {
+            "name": "prompt_preset_id",
+            "in": "path",
+            "description": "预设提示词id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    }
+                  },
+                  "required": [
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/stt/request-stt": {
+      "post": {
+        "summary": "语音转文字上传",
+        "deprecated": false,
+        "description": "只是语音输入接口，发送信息还是需要发送转换后的纯文本",
+        "tags": [
+          "STT"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "audio": {
+                    "format": "binary",
+                    "type": "string",
+                    "example": ""
+                  }
+                }
+              },
+              "examples": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "err_msg": {
+                      "type": "string",
+                      "title": "错误信息"
+                    },
+                    "err_code": {
+                      "type": "integer",
+                      "title": "错误码"
+                    },
+                    "result": {
+                      "type": "object",
+                      "properties": {
+                        "audio_text": {
+                          "type": "string",
+                          "title": "语音文本"
+                        },
+                        "audio_tokens": {
+                          "type": "integer",
+                          "title": "语音token数"
+                        }
+                      },
+                      "required": [
+                        "audio_text",
+                        "audio_tokens"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "result",
+                    "err_msg",
+                    "err_code"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    },
+    "/tts/request/{message_id}": {
+      "post": {
+        "summary": "文本转语音",
+        "deprecated": false,
+        "description": "",
+        "tags": [
+          "TTS"
+        ],
+        "parameters": [
+          {
+            "name": "message_id",
+            "in": "path",
+            "description": "消息id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "返回音频二进制流",
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "user": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "用户id"
+          },
+          "username": {
+            "type": "string",
+            "title": "账号",
+            "description": "仅限中英文"
+          },
+          "password": {
+            "type": "string",
+            "title": "密码"
+          },
+          "nickname": {
+            "type": "string",
+            "title": "昵称",
+            "description": "允许中文与emoji"
+          },
+          "role": {
+            "type": "string",
+            "title": "角色",
+            "description": "ADMIN | USER"
+          },
+          "status": {
+            "type": "boolean",
+            "title": "状态",
+            "description": "指示启用状态"
+          },
+          "total_quota": {
+            "type": "integer",
+            "title": "Token总配额"
+          },
+          "remaining_quota": {
+            "type": "integer",
+            "title": "Token余额"
+          }
+        },
+        "required": [
+          "user_id",
+          "username",
+          "password",
+          "total_quota",
+          "nickname",
+          "role",
+          "status",
+          "remaining_quota"
+        ],
+        "title": "用户entity"
+      },
+      "conversation": {
+        "type": "object",
+        "properties": {
+          "conversation_id": {
+            "type": "integer",
+            "title": "对话id"
+          },
+          "user_id": {
+            "type": "integer",
+            "title": "用户id"
+          },
+          "title": {
+            "type": "string",
+            "title": "对话标题"
+          },
+          "status": {
+            "type": "string",
+            "title": "对话状态",
+            "description": "ACTIVE | ARCHIVED | DELETED"
+          },
+          "llm_model": {
+            "type": "string",
+            "title": "默认模型"
+          },
+          "system_prompt": {
+            "type": "string",
+            "title": "会话级系统提示词",
+            "description": "可选",
+            "nullable": true
+          }
+        },
+        "required": [
+          "conversation_id",
+          "user_id",
+          "title",
+          "status",
+          "llm_model"
+        ],
+        "title": "对话entity"
+      },
+      "message": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "integer",
+            "title": "消息id"
+          },
+          "conversation_id": {
+            "type": "integer",
+            "title": "对话id"
+          },
+          "sender_type": {
+            "type": "string",
+            "title": "发送者类型",
+            "description": "USER | ASSISTANT | SYSTEM"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "消息类型",
+            "description": "TEXT | AUDIO | FILE"
+          },
+          "content": {
+            "type": "string",
+            "title": "消息内容",
+            "description": "纯文本内容，文件需要通过消息附件表附加"
+          },
+          "token_total": {
+            "type": "integer",
+            "title": "消息token数"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "创建时间",
+            "description": "消息顺序以此为准"
+          }
+        },
+        "title": "消息entity",
+        "required": [
+          "message_id",
+          "conversation_id",
+          "sender_type",
+          "content_type",
+          "content",
+          "token_total",
+          "created_at"
+        ]
+      },
+      "message_attachment": {
+        "type": "object",
+        "properties": {
+          "attachment_id": {
+            "type": "integer",
+            "title": "附件id"
+          },
+          "message_id": {
+            "type": "integer",
+            "title": "消息id"
+          },
+          "attachment_type": {
+            "type": "string",
+            "title": "附件类型",
+            "description": "IMAGE | AUDIO | FILE"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime类型"
+          },
+          "storage_type": {
+            "type": "string",
+            "title": "储存类型",
+            "description": "LOCAL | OSS"
+          },
+          "url_or_path": {
+            "type": "string",
+            "title": "路径"
+          },
+          "duration_ms": {
+            "type": "number",
+            "title": "音频时长",
+            "description": "可选",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "title": "创建时间"
+          }
+        },
+        "title": "消息附件entity",
+        "required": [
+          "attachment_id",
+          "message_id",
+          "attachment_type",
+          "mime_type",
+          "storage_type",
+          "url_or_path",
+          "created_at"
+        ]
+      },
+      "prompt_preset": {
+        "type": "object",
+        "properties": {
+          "prompt_preset_id": {
+            "type": "integer",
+            "title": "提示词id"
+          },
+          "name": {
+            "type": "string",
+            "title": "提示词名称"
+          },
+          "description": {
+            "type": "string",
+            "title": "提示词描述"
+          },
+          "content": {
+            "type": "string",
+            "title": "提示词"
+          }
+        },
+        "title": "预设提示词entity",
+        "required": [
+          "prompt_preset_id",
+          "name",
+          "description",
+          "content"
+        ]
+      },
+      "登录凭据": {
+        "type": "object",
+        "properties": {
+          "jwt_token": {
+            "type": "string",
+            "title": "Jwt token",
+            "description": "不带headers头"
+          }
+        },
+        "required": [
+          "jwt_token"
+        ]
+      },
+      "message_detail": {
+        "type": "object",
+        "properties": {
+          "message_id": {
+            "type": "integer",
+            "title": "消息id"
+          },
+          "sender_type": {
+            "type": "string",
+            "title": "发送者类型",
+            "description": "USER | ASSISTANT | SYSTEM"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "消息类型",
+            "description": "TEXT | AUDIO | FILE"
+          },
+          "content": {
+            "type": "string",
+            "title": "消息内容",
+            "description": "纯文本内容，文件需要通过消息附件表附加"
+          },
+          "token_total": {
+            "type": "integer",
+            "title": "消息token数"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "attachment_id": {
+                  "type": "integer",
+                  "title": "附件id"
+                },
+                "attachment_type": {
+                  "type": "string",
+                  "title": "附件类型",
+                  "description": "IMAGE | AUDIO | FILE"
+                },
+                "mime_type": {
+                  "type": "string",
+                  "title": "Mime类型"
+                },
+                "url_or_path": {
+                  "type": "string",
+                  "title": "路径"
+                },
+                "duration_ms": {
+                  "type": "number",
+                  "title": "音频时长",
+                  "description": "可选",
+                  "nullable": true
+                }
+              },
+              "required": [
+                "attachment_id",
+                "attachment_type",
+                "mime_type",
+                "url_or_path"
+              ]
+            }
+          }
+        },
+        "title": "消息内容与附件",
+        "required": [
+          "attachments",
+          "message_id",
+          "sender_type",
+          "content_type",
+          "content",
+          "token_total"
+        ]
+      },
+      "conversation_info": {
+        "type": "object",
+        "properties": {
+          "conversation_id": {
+            "type": "integer",
+            "title": "对话id"
+          },
+          "title": {
+            "type": "string",
+            "title": "对话标题"
+          },
+          "status": {
+            "type": "string",
+            "title": "对话状态",
+            "description": "ACTIVE | ARCHIVED | DELETED"
+          },
+          "llm_model": {
+            "type": "string",
+            "title": "默认模型"
+          }
+        },
+        "title": "对话摘要信息",
+        "required": [
+          "conversation_id",
+          "title",
+          "status",
+          "llm_model"
+        ]
+      },
+      "user_detail": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "integer",
+            "title": "用户id"
+          },
+          "username": {
+            "type": "string",
+            "title": "账号",
+            "description": "仅限中英文"
+          },
+          "nickname": {
+            "type": "string",
+            "title": "昵称",
+            "description": "允许中文与emoji"
+          },
+          "role": {
+            "type": "string",
+            "title": "角色",
+            "description": "ADMIN | USER"
+          },
+          "total_quota": {
+            "type": "integer",
+            "title": "Token总配额"
+          },
+          "remaining_quota": {
+            "type": "integer",
+            "title": "Token余额"
+          }
+        },
+        "title": "用户详细信息",
+        "required": [
+          "user_id",
+          "username",
+          "nickname",
+          "role",
+          "total_quota",
+          "remaining_quota"
+        ]
+      },
+      "stt_response": {
+        "type": "object",
+        "properties": {
+          "audio_text": {
+            "type": "string",
+            "title": "语音文本"
+          },
+          "audio_tokens": {
+            "type": "integer",
+            "title": "语音token数"
+          }
+        },
+        "title": "STT响应",
+        "required": [
+          "audio_text",
+          "audio_tokens"
+        ]
+      },
+      "attachment_info": {
+        "type": "object",
+        "properties": {
+          "attachment_id": {
+            "type": "integer",
+            "title": "附件id"
+          },
+          "attachment_type": {
+            "type": "string",
+            "title": "附件类型",
+            "description": "IMAGE | AUDIO | FILE"
+          },
+          "mime_type": {
+            "type": "string",
+            "title": "Mime类型"
+          },
+          "url_or_path": {
+            "type": "string",
+            "title": "路径"
+          },
+          "duration_ms": {
+            "type": "number",
+            "title": "音频时长",
+            "description": "可选",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "title": "创建时间"
+          }
+        },
+        "title": "消息附件摘要",
+        "required": [
+          "attachment_id",
+          "attachment_type",
+          "mime_type",
+          "url_or_path",
+          "created_at"
+        ]
+      },
+      "业务错误细节": {
+        "type": "object",
+        "properties": {
+          "err_msg": {
+            "type": "string",
+            "title": "错误信息"
+          },
+          "err_code": {
+            "type": "integer",
+            "title": "错误码"
+          }
+        },
+        "required": [
+          "err_msg",
+          "err_code"
+        ]
+      },
+      "分页响应组件": {
+        "type": "object",
+        "properties": {
+          "total_page": {
+            "type": "integer",
+            "title": "总页数"
+          },
+          "total_count": {
+            "type": "integer",
+            "title": "元素总数"
+          },
+          "current_page": {
+            "type": "integer",
+            "title": "当前页码",
+            "description": "从1开始"
+          },
+          "page_size": {
+            "type": "integer",
+            "title": "页面容量"
+          }
+        },
+        "required": [
+          "total_page",
+          "total_count",
+          "current_page",
+          "page_size"
+        ]
+      }
+    },
+    "responses": {
+      "成功响应": {
+        "description": "",
+        "content": {
+          "application/json": {
+            "schema": {
+              "title": "",
+              "type": "object",
+              "properties": {
+                "err_msg": {
+                  "type": "string",
+                  "title": "错误信息"
+                },
+                "err_code": {
+                  "type": "integer",
+                  "title": "错误码"
+                }
+              },
+              "required": [
+                "err_msg",
+                "err_code"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "JWT Token": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "servers": [],
+  "security": [
+    {
+      "JWT Token": []
+    }
+  ]
+}
