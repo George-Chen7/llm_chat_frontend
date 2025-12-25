@@ -2,25 +2,32 @@ import { apiJson, apiRequest } from "./client";
 import { refreshToken } from "./auth";
 import { requestWithAuth } from "./withAuth";
 import type {
+  AdminPromptPresetListResponse,
+  AdminUsersResponse,
   ChatHistoryResponse,
+  ChatPromptPresetResponse,
+  CreatePromptPresetRequest,
   LoginRequest,
   LoginResponse,
+  MeConversationsResponse,
+  MeInfoResponse,
   NewConversationRequest,
   NewConversationResponse,
+  NewUserRequest,
+  NewUserResponse,
   RenameConversationRequest,
   ResetPasswordRequest,
   SendMessageRequest,
   SendMessageResponse,
+  SetQuotaRequest,
   SttResponse,
   UploadAttachmentResponse,
 } from "./types";
 
-// 登录（账号密码）
 export function login(data: LoginRequest) {
   return apiJson<LoginResponse>("/auth/login", data, { method: "POST" });
 }
 
-// 修改密码
 export function resetPassword(data: ResetPasswordRequest, token: string) {
   return requestWithAuth(
     (authToken) =>
@@ -32,7 +39,33 @@ export function resetPassword(data: ResetPasswordRequest, token: string) {
   );
 }
 
-// 新建对话
+export function getMeInfo(token: string) {
+  return requestWithAuth(
+    (authToken) => apiRequest<MeInfoResponse>("/me/info", { token: authToken }),
+    token
+  );
+}
+
+export function getMeConversations(token: string) {
+  return requestWithAuth(
+    (authToken) =>
+      apiRequest<MeConversationsResponse>("/me/conversations", {
+        token: authToken,
+      }),
+    token
+  );
+}
+
+export function getChatPromptPresets(token: string) {
+  return requestWithAuth(
+    (authToken) =>
+      apiRequest<ChatPromptPresetResponse>("/chat/prompt-preset", {
+        token: authToken,
+      }),
+    token
+  );
+}
+
 export function newConversation(data: NewConversationRequest, token: string) {
   return requestWithAuth(
     (authToken) =>
@@ -44,7 +77,6 @@ export function newConversation(data: NewConversationRequest, token: string) {
   );
 }
 
-// 对话重命名
 export function renameConversation(
   conversationId: number,
   data: RenameConversationRequest,
@@ -60,7 +92,6 @@ export function renameConversation(
   );
 }
 
-// 删除对话
 export function deleteConversation(conversationId: number, token: string) {
   return requestWithAuth(
     (authToken) =>
@@ -72,7 +103,6 @@ export function deleteConversation(conversationId: number, token: string) {
   );
 }
 
-// 获取聊天历史（分页）
 export function getChatHistory(
   conversationId: number,
   params: { current_page?: number; page_size?: number },
@@ -91,7 +121,6 @@ export function getChatHistory(
   );
 }
 
-// 发送消息
 export function sendMessage(
   conversationId: number,
   data: SendMessageRequest,
@@ -108,7 +137,6 @@ export function sendMessage(
   );
 }
 
-// 上传附件（multipart/form-data）
 export function uploadAttachment(file: File, token: string) {
   const formData = new FormData();
   formData.append("file", file);
@@ -123,7 +151,6 @@ export function uploadAttachment(file: File, token: string) {
   );
 }
 
-// 语音转文字（STT）
 export function requestStt(audioFile: File, token: string) {
   const formData = new FormData();
   formData.append("audio", audioFile);
@@ -138,12 +165,98 @@ export function requestStt(audioFile: File, token: string) {
   );
 }
 
-// 文本转语音（TTS）返回 wav 二进制流
 export function requestTts(messageId: number, token: string) {
   return requestWithAuth(
     (authToken) =>
       apiRequest<Blob>(`/tts/request/${messageId}`, {
         method: "POST",
+        token: authToken,
+      }),
+    token
+  );
+}
+
+export function getAdminUsers(
+  params: { current_page?: number; page_size?: number },
+  token: string
+) {
+  const search = new URLSearchParams();
+  if (params.current_page) search.set("current_page", `${params.current_page}`);
+  if (params.page_size) search.set("page_size", `${params.page_size}`);
+  const query = search.toString();
+  const path = query ? `/admin/users?${query}` : "/admin/users";
+  return requestWithAuth(
+    (authToken) => apiRequest<AdminUsersResponse>(path, { token: authToken }),
+    token
+  );
+}
+
+export function adminNewUser(data: NewUserRequest, token: string) {
+  return requestWithAuth(
+    (authToken) =>
+      apiJson<NewUserResponse>("/admin/new-user", data, {
+        method: "POST",
+        token: authToken,
+      }),
+    token
+  );
+}
+
+export function adminDeleteUser(userId: number, token: string) {
+  return requestWithAuth(
+    (authToken) =>
+      apiRequest(`/admin/delete-user/${userId}`, {
+        method: "DELETE",
+        token: authToken,
+      }),
+    token
+  );
+}
+
+export function adminSetQuota(
+  userId: number,
+  data: SetQuotaRequest,
+  token: string
+) {
+  return requestWithAuth(
+    (authToken) =>
+      apiJson(`/admin/set-quota/${userId}`, data, {
+        method: "POST",
+        token: authToken,
+      }),
+    token
+  );
+}
+
+export function adminGetPromptPresets(token: string) {
+  return requestWithAuth(
+    (authToken) =>
+      apiRequest<AdminPromptPresetListResponse>("/admin/prompt-preset", {
+        token: authToken,
+      }),
+    token
+  );
+}
+
+export function adminCreatePromptPreset(
+  data: CreatePromptPresetRequest,
+  token: string
+) {
+  return requestWithAuth(
+    (authToken) =>
+      apiJson("/admin/prompt-preset", data, {
+        method: "POST",
+        token: authToken,
+      }),
+    token
+  );
+}
+
+export function adminDeletePromptPreset(presetId: number, token: string) {
+  return requestWithAuth(
+    (authToken) =>
+      apiRequest(`/admin/prompt-preset/${presetId}`, {
+        method: "DELETE",
         token: authToken,
       }),
     token

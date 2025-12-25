@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getTokenFromCookie } from "@/lib/api/client";
-import { resetPassword } from "@/lib/api";
+import { getMeInfo, resetPassword } from "@/lib/api";
 import { AuthExpiredError } from "@/lib/api/withAuth";
+import { isDemoToken } from "@/lib/auth";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -14,11 +15,64 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<{
+    username: string;
+    nickname: string;
+    role: string;
+    total_quota: number;
+    remaining_quota: number;
+  } | null>(null);
 
   const handleAuthExpired = (message?: string) => {
     setError(message ?? "登录已过期，请重新登录。");
     router.replace("/login");
   };
+
+  const loadUserInfo = async (token: string) => {
+    if (isDemoToken(token)) {
+      setUserInfo({
+        username: "demo",
+        nickname: "演示用户",
+        role: "USER",
+        total_quota: 100000,
+        remaining_quota: 72500,
+      });
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: response, token: nextToken } = await getMeInfo(token);
+      if (response.err_code !== 0) {
+        setError(response.err_msg);
+        return;
+      }
+      setUserInfo({
+        username: response.user.username,
+        nickname: response.user.nickname,
+        role: response.user.role,
+        total_quota: response.user.total_quota,
+        remaining_quota: response.user.remaining_quota,
+      });
+    } catch (err) {
+      if (err instanceof AuthExpiredError) {
+        handleAuthExpired(err.message);
+        return;
+      }
+      setError(err instanceof Error ? err.message : "加载个人信息失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const token = getTokenFromCookie();
+    if (!token) {
+      handleAuthExpired("未找到登录信息，请重新登录。");
+      return;
+    }
+    void loadUserInfo(token);
+  }, []);
 
   const handleSubmit = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
@@ -35,6 +89,10 @@ export default function SettingsPage() {
       return;
     }
 
+    if (isDemoToken(token)) {
+      setSuccess("演示账号不支持修改密码。");
+      return;
+    }
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -74,16 +132,16 @@ export default function SettingsPage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
             <h2 className="text-base font-semibold text-slate-900">基本信息</h2>
             <div className="mt-4 space-y-2 text-sm text-slate-600">
-              <p>账号：demo_user</p>
-              <p>昵称：示例用户</p>
-              <p>角色：USER</p>
+              <p>账号：{userInfo?.username ?? "-"}</p>
+              <p>昵称：{userInfo?.nickname ?? "-"}</p>
+              <p>角色：{userInfo?.role ?? "-"}</p>
             </div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-6">
             <h2 className="text-base font-semibold text-slate-900">配额情况</h2>
             <div className="mt-4 space-y-2 text-sm text-slate-600">
-              <p>总配额：100,000</p>
-              <p>剩余配额：72,500</p>
+              <p>总配额：{userInfo?.total_quota ?? "-"}</p>
+              <p>剩余配额：{userInfo?.remaining_quota ?? "-"}</p>
               <p>提示：配额不足时将限制发送消息。</p>
             </div>
           </div>

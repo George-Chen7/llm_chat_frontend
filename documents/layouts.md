@@ -147,7 +147,7 @@
 ## 4. 权限与状态
 
 - 未登录访问重定向 `/login`。
-- JWT 过期：自动尝试 `POST /refresh-token`，失败则退出登录。
+- JWT 过期：自动尝试 `POST /auth/refresh-token`，失败则退出登录。
 - 管理权限：仅 ADMIN 角色显示 `/admin`。
 
 ## 5. 组件与公共模块建议

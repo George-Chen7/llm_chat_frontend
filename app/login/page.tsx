@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { login } from "@/lib/api";
-import { setAuthCookie } from "@/lib/auth";
+import { DEMO_TOKEN, setAuthCookie } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,6 +19,12 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
+      // 演示账号：不依赖后端，直接写入本地 token。
+      if (username === "demo" && password === "demo123") {
+        setAuthCookie(DEMO_TOKEN);
+        router.replace(redirect);
+        return;
+      }
       const response = await login({ username, password });
       if (response.err_code !== 0) {
         setError(response.err_msg);
@@ -55,6 +61,7 @@ export default function LoginPage() {
               type="text"
               value={username}
             />
+            <p className="text-xs text-slate-500">演示账号：demo / demo123</p>
           </div>
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700">密码</label>

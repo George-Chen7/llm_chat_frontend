@@ -1,4 +1,10 @@
 // 统一处理前端可见的鉴权 cookie，便于登录与退出逻辑复用。
+export const DEMO_TOKEN = "demo-token";
+
+export function isDemoToken(token?: string) {
+  return token === DEMO_TOKEN;
+}
+
 export function setAuthCookie(token: string) {
   document.cookie = `jwt_token=${encodeURIComponent(
     token

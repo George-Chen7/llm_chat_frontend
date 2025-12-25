@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getTokenFromCookie } from "@/lib/api/client";
 import {
+  getMeConversations,
   getChatHistory,
   newConversation,
   requestStt,
@@ -12,6 +13,7 @@ import {
   uploadAttachment,
 } from "@/lib/api";
 import { AuthExpiredError } from "@/lib/api/withAuth";
+import { isDemoToken } from "@/lib/auth";
 import type {
   AttachmentInfo,
   ConversationInfo,
@@ -20,6 +22,84 @@ import type {
 
 type ChatClientProps = {
   initialConversationId?: string;
+};
+
+const demoConversations: ConversationInfo[] = [
+  {
+    conversation_id: 1,
+    title: "演示对话：产品规划",
+    status: "ACTIVE",
+    llm_model: "默认",
+  },
+  {
+    conversation_id: 2,
+    title: "演示对话：营销方案",
+    status: "ARCHIVED",
+    llm_model: "默认",
+  },
+  {
+    conversation_id: 3,
+    title: "演示对话：学习助手",
+    status: "ACTIVE",
+    llm_model: "默认",
+  },
+];
+
+const demoMessagesSeed: Record<number, MessageDetail[]> = {
+  1: [
+    {
+      message_id: 101,
+      sender_type: "USER",
+      content_type: "TEXT",
+      content: "帮我梳理一个产品规划的核心模块。",
+      token_total: 8,
+      attachments: [],
+    },
+    {
+      message_id: 102,
+      sender_type: "ASSISTANT",
+      content_type: "TEXT",
+      content: "可以从目标用户、核心价值、功能范围、里程碑与风险控制五个维度展开。",
+      token_total: 20,
+      attachments: [],
+    },
+  ],
+  2: [
+    {
+      message_id: 201,
+      sender_type: "USER",
+      content_type: "TEXT",
+      content: "请给我一个活动推广的方案框架。",
+      token_total: 10,
+      attachments: [],
+    },
+    {
+      message_id: 202,
+      sender_type: "ASSISTANT",
+      content_type: "TEXT",
+      content: "建议包含目标设定、渠道策略、内容节奏、预算分配与效果复盘。",
+      token_total: 18,
+      attachments: [],
+    },
+  ],
+  3: [
+    {
+      message_id: 301,
+      sender_type: "USER",
+      content_type: "TEXT",
+      content: "帮我制定一周的学习计划。",
+      token_total: 8,
+      attachments: [],
+    },
+    {
+      message_id: 302,
+      sender_type: "ASSISTANT",
+      content_type: "TEXT",
+      content: "可以按主题拆分，先打基础，再进行练习与复盘。",
+      token_total: 16,
+      attachments: [],
+    },
+  ],
 };
 
 export default function ChatClient({ initialConversationId }: ChatClientProps) {
@@ -38,6 +118,8 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [demoMessageMap, setDemoMessageMap] =
+    useState<Record<number, MessageDetail[]>>(demoMessagesSeed);
 
   useEffect(() => {
     // token 由登录页写入 cookie，页面加载时从 cookie 读取。
@@ -71,7 +153,16 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
     router.replace("/login");
   };
 
+  const loadDemoHistory = (conversationId: number) => {
+    const list = demoMessageMap[conversationId] ?? [];
+    setMessages(list);
+  };
+
   const loadHistory = async (conversationId: number, authToken: string) => {
+    if (isDemoToken(authToken)) {
+      loadDemoHistory(conversationId);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -104,6 +195,47 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
     void loadHistory(activeConversationId, token);
   }, [activeConversationId, token]);
 
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+    if (isDemoToken(token)) {
+      setConversations(demoConversations);
+      if (!activeConversationId) {
+        setActiveConversationId(demoConversations[0]?.conversation_id ?? null);
+      }
+      return;
+    }
+    const loadConversations = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data: response, token: nextToken } = await getMeConversations(
+          token
+        );
+        updateToken(nextToken);
+        if (response.err_code !== 0) {
+          setError(response.err_msg);
+          return;
+        }
+        setConversations(response.conversations ?? []);
+        if (!activeConversationId && response.conversations?.length) {
+          setActiveConversationId(response.conversations[0].conversation_id);
+        }
+      } catch (err) {
+        if (err instanceof AuthExpiredError) {
+          handleAuthExpired(err.message);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "加载对话列表失败");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadConversations();
+  }, [activeConversationId, token]);
+
   const ensureConversation = async () => {
     if (!token) {
       setError("未找到登录信息，请重新登录。");
@@ -111,6 +243,20 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
     }
     if (activeConversationId) {
       return activeConversationId;
+    }
+    if (isDemoToken(token)) {
+      const newConversationId = Date.now();
+      const nextConversation: ConversationInfo = {
+        conversation_id: newConversationId,
+        title: "演示对话",
+        status: "ACTIVE",
+        llm_model: "默认",
+      };
+      setConversations((prev) => [nextConversation, ...prev]);
+      setActiveConversationId(newConversationId);
+      setDemoMessageMap((prev) => ({ ...prev, [newConversationId]: [] }));
+      router.replace(`/chat/${newConversationId}`);
+      return newConversationId;
     }
     const title = "新对话";
     try {
@@ -140,6 +286,24 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
   const handleCreateConversation = async () => {
     if (!token) {
       setError("未找到登录信息，请重新登录。");
+      return;
+    }
+    if (isDemoToken(token)) {
+      const title = window.prompt("请输入对话标题", "演示对话");
+      if (!title) {
+        return;
+      }
+      const newConversationId = Date.now();
+      const nextConversation: ConversationInfo = {
+        conversation_id: newConversationId,
+        title,
+        status: "ACTIVE",
+        llm_model: "默认",
+      };
+      setConversations((prev) => [nextConversation, ...prev]);
+      setActiveConversationId(newConversationId);
+      setDemoMessageMap((prev) => ({ ...prev, [newConversationId]: [] }));
+      router.replace(`/chat/${newConversationId}`);
       return;
     }
     // 使用浏览器 prompt 简化交互，后续可替换为 Ant Design X 的弹窗。
@@ -182,6 +346,40 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
     if (!conversationId || !token) {
       return;
     }
+    if (isDemoToken(token)) {
+      const baseId = Date.now();
+      const userMessage: MessageDetail = {
+        message_id: baseId,
+        sender_type: "USER",
+        content_type: "TEXT",
+        content: input.trim() || " ",
+        token_total: 0,
+        attachments: uploadedAttachments.map((item) => ({
+          attachment_id: item.attachment_id,
+          attachment_type: item.attachment_type,
+          mime_type: item.mime_type,
+          url_or_path: item.url_or_path,
+          duration_ms: item.duration_ms ?? null,
+        })),
+      };
+      const assistantMessage: MessageDetail = {
+        message_id: baseId + 1,
+        sender_type: "ASSISTANT",
+        content_type: "TEXT",
+        content: "这是演示账号的模型回复示例。",
+        token_total: 0,
+        attachments: [],
+      };
+      setDemoMessageMap((prev) => {
+        const nextList = [...(prev[conversationId] ?? []), userMessage, assistantMessage];
+        return { ...prev, [conversationId]: nextList };
+      });
+      setMessages((prev) => [...prev, userMessage, assistantMessage]);
+      setInput("");
+      setAttachmentIds([]);
+      setUploadedAttachments([]);
+      return;
+    }
     setSending(true);
     setError(null);
     try {
@@ -222,6 +420,18 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
       setError("未找到登录信息，请重新登录。");
       return;
     }
+    if (isDemoToken(token)) {
+      const mockAttachment: AttachmentInfo = {
+        attachment_id: Date.now(),
+        attachment_type: "FILE",
+        mime_type: file.type || "application/octet-stream",
+        url_or_path: file.name,
+        created_at: new Date().toISOString(),
+      };
+      setAttachmentIds((prev) => [...prev, mockAttachment.attachment_id]);
+      setUploadedAttachments((prev) => [...prev, mockAttachment]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -252,6 +462,10 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
       setError("未找到登录信息，请重新登录。");
       return;
     }
+    if (isDemoToken(token)) {
+      setInput("这是语音识别结果（演示）。");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -277,6 +491,10 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
   const handleTts = async (messageId: number) => {
     if (!token) {
       setError("未找到登录信息，请重新登录。");
+      return;
+    }
+    if (isDemoToken(token)) {
+      setError("演示账号暂不支持语音播放。");
       return;
     }
     setLoading(true);

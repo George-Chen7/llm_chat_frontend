@@ -160,7 +160,7 @@
         "security": []
       }
     },
-    "/refresh-token": {
+    "/auth/refresh-token": {
       "post": {
         "summary": "刷新JWT Token",
         "deprecated": false,

@@ -121,3 +121,65 @@ export type PromptPreset = {
   description: string;
   content: string;
 };
+
+export type ChatPromptPreset = {
+  name: string;
+  description: string;
+  content: string;
+};
+
+export type MeInfoResponse = ApiResponse & {
+  user: UserDetail;
+};
+
+export type MeConversationsResponse = ApiResponse & {
+  conversations: ConversationInfo[];
+};
+
+export type ChatPromptPresetResponse = ApiResponse & {
+  prompt_presets: ChatPromptPreset[];
+};
+
+export type UserDetail = {
+  user_id: number;
+  username: string;
+  nickname: string;
+  role: "ADMIN" | "USER";
+  total_quota: number;
+  remaining_quota: number;
+};
+
+export type AdminUsersResponse = ApiResponse & {
+  users: UserDetail[];
+  total_page: number;
+  total_count: number;
+  current_page: number;
+  page_size: number;
+};
+
+export type NewUserRequest = {
+  username: string;
+  password: string;
+  nickname: string;
+  role: "ADMIN" | "USER";
+  total_quota: number;
+  remaining_quota: number;
+};
+
+export type NewUserResponse = ApiResponse & {
+  user: UserDetail;
+};
+
+export type SetQuotaRequest = {
+  quota: number;
+};
+
+export type AdminPromptPresetListResponse = ApiResponse & {
+  prompt_presets: PromptPreset[];
+};
+
+export type CreatePromptPresetRequest = {
+  name: string;
+  description: string;
+  content: string;
+};
