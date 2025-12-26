@@ -5,5 +5,9 @@ type ChatDetailPageProps = {
 };
 
 export default function ChatDetailPage({ params }: ChatDetailPageProps) {
-  return <ChatClient initialConversationId={params.id} />;
+  return (
+    <div className="h-full min-h-0">
+      <ChatClient initialConversationId={params.id} />
+    </div>
+  );
 }

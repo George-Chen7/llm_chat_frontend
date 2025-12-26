@@ -146,7 +146,7 @@ export type UserDetail = {
   nickname: string;
   role: "ADMIN" | "USER";
   total_quota: number;
-  remaining_quota: number;
+  used_quota: number;
 };
 
 export type AdminUsersResponse = ApiResponse & {
@@ -163,7 +163,7 @@ export type NewUserRequest = {
   nickname: string;
   role: "ADMIN" | "USER";
   total_quota: number;
-  remaining_quota: number;
+  used_quota: number;
 };
 
 export type NewUserResponse = ApiResponse & {

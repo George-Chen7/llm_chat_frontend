@@ -9,7 +9,6 @@ import {
   getChatHistory,
   newConversation,
   requestStt,
-  requestTts,
   sendMessage,
   uploadAttachment,
 } from "@/lib/api";
@@ -121,10 +120,21 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [demoMessageMap, setDemoMessageMap] =
     useState<Record<number, MessageDetail[]>>(demoMessagesSeed);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPage, setTotalPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [isMicSupported, setIsMicSupported] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollAdjustRef = useRef<{
+    prevScrollHeight: number;
+    prevScrollTop: number;
+  } | null>(null);
+  const shouldScrollToBottomRef = useRef(false);
+
+  const pageSize = 20;
 
   useEffect(() => {
     // token 由登录页写入 cookie，页面加载时从 cookie 读取。
@@ -169,9 +179,16 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
   const loadDemoHistory = (conversationId: number) => {
     const list = demoMessageMap[conversationId] ?? [];
     setMessages(list);
+    setCurrentPage(1);
+    setTotalPage(1);
+    shouldScrollToBottomRef.current = true;
   };
 
-  const loadHistory = async (conversationId: number, authToken: string) => {
+  const loadHistory = async (
+    conversationId: number,
+    authToken: string,
+    page = 1
+  ) => {
     if (isDemoToken(authToken)) {
       loadDemoHistory(conversationId);
       return;
@@ -181,7 +198,7 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
     try {
       const { data: response, token: nextToken } = await getChatHistory(
         conversationId,
-        { current_page: 1, page_size: 50 },
+        { current_page: page, page_size: pageSize },
         authToken
       );
       updateToken(nextToken);
@@ -189,7 +206,15 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
         setError(response.err_msg);
         return;
       }
-      setMessages(response.messages ?? []);
+      const normalized = [...(response.messages ?? [])].reverse();
+      if (page === 1) {
+        setMessages(normalized);
+        shouldScrollToBottomRef.current = true;
+      } else {
+        setMessages((prev) => [...normalized, ...prev]);
+      }
+      setCurrentPage(response.current_page ?? page);
+      setTotalPage(response.total_page ?? page);
     } catch (err) {
       if (err instanceof AuthExpiredError) {
         handleAuthExpired(err.message);
@@ -205,7 +230,10 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
     if (!token || !activeConversationId) {
       return;
     }
-    void loadHistory(activeConversationId, token);
+    setMessages([]);
+    setCurrentPage(1);
+    setTotalPage(1);
+    void loadHistory(activeConversationId, token, 1);
   }, [activeConversationId, token]);
 
   useEffect(() => {
@@ -248,6 +276,32 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
 
     void loadConversations();
   }, [activeConversationId, token]);
+
+  useEffect(() => {
+    const pending = pendingScrollAdjustRef.current;
+    if (!pending) {
+      return;
+    }
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+    const { prevScrollHeight, prevScrollTop } = pending;
+    const newScrollHeight = container.scrollHeight;
+    container.scrollTop = newScrollHeight - prevScrollHeight + prevScrollTop;
+    pendingScrollAdjustRef.current = null;
+  }, [messages]);
+
+  useEffect(() => {
+    if (!shouldScrollToBottomRef.current) {
+      return;
+    }
+    const container = scrollContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+    shouldScrollToBottomRef.current = false;
+  }, [messages]);
 
   const ensureConversation = async () => {
     if (!token) {
@@ -391,6 +445,7 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
       setInput("");
       setAttachmentIds([]);
       setUploadedAttachments([]);
+      shouldScrollToBottomRef.current = true;
       return;
     }
     setSending(true);
@@ -417,6 +472,7 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
       setInput("");
       setAttachmentIds([]);
       setUploadedAttachments([]);
+      shouldScrollToBottomRef.current = true;
     } catch (err) {
       if (err instanceof AuthExpiredError) {
         handleAuthExpired(err.message);
@@ -546,6 +602,38 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
     }
   };
 
+  const handleLoadMore = async () => {
+    if (!token || !activeConversationId) {
+      return;
+    }
+    if (isLoadingMore || currentPage >= totalPage) {
+      return;
+    }
+    const container = scrollContainerRef.current;
+    if (container) {
+      pendingScrollAdjustRef.current = {
+        prevScrollHeight: container.scrollHeight,
+        prevScrollTop: container.scrollTop,
+      };
+    }
+    setIsLoadingMore(true);
+    try {
+      await loadHistory(activeConversationId, token, currentPage + 1);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  };
+
+  const handleScroll = () => {
+    const container = scrollContainerRef.current;
+    if (!container) {
+      return;
+    }
+    if (container.scrollTop <= 40) {
+      void handleLoadMore();
+    }
+  };
+
   const handleTts = async (messageId: number) => {
     if (!token) {
       setError("未找到登录信息，请重新登录。");
@@ -586,7 +674,7 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
   };
 
   return (
-    <div className="grid min-h-[calc(100vh-4rem)] grid-cols-[280px_1fr]">
+    <div className="grid h-full grid-cols-[280px_1fr] overflow-hidden">
       <aside className="flex flex-col border-r border-slate-200 bg-white">
         <div className="border-b border-slate-200 p-4">
           <button
@@ -632,7 +720,7 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
         </div>
       </aside>
 
-      <main className="flex flex-col">
+      <main className="flex h-full flex-col">
         <header className="border-b border-slate-200 bg-white px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -650,7 +738,16 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
           </div>
         </header>
 
-        <section className="flex-1 overflow-auto px-6 py-6">
+        <section
+          className="flex-1 overflow-auto px-6 py-6"
+          onScroll={handleScroll}
+          ref={scrollContainerRef}
+        >
+          {isLoadingMore && (
+            <div className="mb-4 text-center text-xs text-slate-500">
+              正在加载更多消息...
+            </div>
+          )}
           {error && (
             <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
               {error}

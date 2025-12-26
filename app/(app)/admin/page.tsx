@@ -24,7 +24,7 @@ const demoUsers: UserDetail[] = [
     nickname: "演示管理员",
     role: "ADMIN",
     total_quota: 100000,
-    remaining_quota: 50000,
+    used_quota: 50000,
   },
   {
     user_id: 2,
@@ -32,7 +32,7 @@ const demoUsers: UserDetail[] = [
     nickname: "演示用户",
     role: "USER",
     total_quota: 50000,
-    remaining_quota: 20000,
+    used_quota: 20000,
   },
 ];
 
@@ -70,7 +70,7 @@ export default function AdminPage() {
     nickname: "",
     role: "USER",
     total_quota: 100000,
-    remaining_quota: 100000,
+    used_quota: 0,
   });
   const [quotaMap, setQuotaMap] = useState<Record<number, string>>({});
   const [newPrompt, setNewPrompt] = useState({
@@ -165,7 +165,7 @@ export default function AdminPage() {
         nickname: newUser.nickname,
         role: newUser.role as "ADMIN" | "USER",
         total_quota: newUser.total_quota,
-        remaining_quota: newUser.remaining_quota,
+        used_quota: newUser.used_quota,
       };
       setUsers((prev) => [mockUser, ...prev]);
       setSuccess("演示账号已新增用户。");
@@ -182,7 +182,7 @@ export default function AdminPage() {
           nickname: newUser.nickname,
           role: newUser.role as "ADMIN" | "USER",
           total_quota: newUser.total_quota,
-          remaining_quota: newUser.remaining_quota,
+          used_quota: newUser.used_quota,
         },
         authToken
       );
@@ -251,7 +251,11 @@ export default function AdminPage() {
       setUsers((prev) =>
         prev.map((user) =>
           user.user_id === userId
-            ? { ...user, remaining_quota: value, total_quota: value }
+            ? {
+                ...user,
+                total_quota: value,
+                used_quota: Math.min(user.used_quota, value),
+              }
             : user
         )
       );
@@ -274,7 +278,11 @@ export default function AdminPage() {
       setUsers((prev) =>
         prev.map((user) =>
           user.user_id === userId
-            ? { ...user, remaining_quota: value, total_quota: value }
+            ? {
+                ...user,
+                total_quota: value,
+                used_quota: Math.min(user.used_quota, value),
+              }
             : user
         )
       );
@@ -439,7 +447,7 @@ export default function AdminPage() {
 
           {isAdmin && activeTab === "users" && (
             <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="grid gap-3 md:grid-cols-6">
+              <div className="grid gap-3 md:grid-cols-7">
                 <input
                   className="rounded-xl border border-slate-200 px-3 py-2 text-sm md:col-span-1"
                   placeholder="账号"
@@ -498,7 +506,18 @@ export default function AdminPage() {
                     setNewUser((prev) => ({
                       ...prev,
                       total_quota: Number(event.target.value),
-                      remaining_quota: Number(event.target.value),
+                    }))
+                  }
+                />
+                <input
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-sm md:col-span-1"
+                  placeholder="已用配额"
+                  type="number"
+                  value={newUser.used_quota}
+                  onChange={(event) =>
+                    setNewUser((prev) => ({
+                      ...prev,
+                      used_quota: Number(event.target.value),
                     }))
                   }
                 />
@@ -561,7 +580,8 @@ export default function AdminPage() {
                         {user.username}
                       </p>
                       <p className="text-xs text-slate-500">
-                        总配额：{user.total_quota} | 剩余配额：{user.remaining_quota}
+                        总配额：{user.total_quota} | 已用配额：{user.used_quota} | 剩余配额：
+                        {Math.max(user.total_quota - user.used_quota, 0)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

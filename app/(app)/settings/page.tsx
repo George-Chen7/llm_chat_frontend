@@ -20,7 +20,7 @@ export default function SettingsPage() {
     nickname: string;
     role: string;
     total_quota: number;
-    remaining_quota: number;
+    used_quota: number;
   } | null>(null);
 
   const handleAuthExpired = (message?: string) => {
@@ -35,7 +35,7 @@ export default function SettingsPage() {
         nickname: "演示用户",
         role: "USER",
         total_quota: 100000,
-        remaining_quota: 72500,
+        used_quota: 27500,
       });
       return;
     }
@@ -52,7 +52,7 @@ export default function SettingsPage() {
         nickname: response.user.nickname,
         role: response.user.role,
         total_quota: response.user.total_quota,
-        remaining_quota: response.user.remaining_quota,
+        used_quota: response.user.used_quota,
       });
     } catch (err) {
       if (err instanceof AuthExpiredError) {
@@ -141,7 +141,13 @@ export default function SettingsPage() {
             <h2 className="text-base font-semibold text-slate-900">配额情况</h2>
             <div className="mt-4 space-y-2 text-sm text-slate-600">
               <p>总配额：{userInfo?.total_quota ?? "-"}</p>
-              <p>剩余配额：{userInfo?.remaining_quota ?? "-"}</p>
+              <p>已用配额：{userInfo?.used_quota ?? "-"}</p>
+              <p>
+                剩余配额：
+                {userInfo
+                  ? Math.max(userInfo.total_quota - userInfo.used_quota, 0)
+                  : "-"}
+              </p>
               <p>提示：配额不足时将限制发送消息。</p>
             </div>
           </div>
