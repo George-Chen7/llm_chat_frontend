@@ -157,7 +157,11 @@
             "headers": {}
           }
         },
-        "security": []
+        "security": [
+          {
+            "JWT Token": []
+          }
+        ]
       }
     },
     "/auth/refresh-token": {
@@ -655,7 +659,7 @@
                     "format": "binary",
                     "type": "string",
                     "description": "附件",
-                    "example": ""
+                    "example": "file://C:\\Users\\mowei\\Desktop\\Document\\微信图片_20231014195247.jpg"
                   }
                 }
               },
@@ -691,7 +695,8 @@
                   ]
                 }
               }
-            }
+            },
+            "headers": {}
           }
         },
         "security": [
@@ -821,9 +826,9 @@
                           "type": "integer",
                           "title": "Token总配额"
                         },
-                        "remaining_quota": {
+                        "used_quota": {
                           "type": "integer",
-                          "title": "Token余额"
+                          "title": "Token使用量"
                         }
                       },
                       "required": [
@@ -832,7 +837,7 @@
                         "nickname",
                         "role",
                         "total_quota",
-                        "remaining_quota"
+                        "used_quota"
                       ]
                     }
                   },
@@ -941,9 +946,9 @@
                     "type": "integer",
                     "title": "Token总配额"
                   },
-                  "remaining_quota": {
+                  "used_quota": {
                     "type": "integer",
-                    "title": "Token余额"
+                    "title": "Token使用量"
                   }
                 },
                 "required": [
@@ -952,7 +957,7 @@
                   "nickname",
                   "role",
                   "total_quota",
-                  "remaining_quota"
+                  "used_quota"
                 ]
               },
               "examples": {}
@@ -1475,7 +1480,7 @@
       }
     },
     "/tts/request/{message_id}": {
-      "post": {
+      "get": {
         "summary": "文本转语音",
         "deprecated": false,
         "description": "",
@@ -1552,9 +1557,9 @@
             "type": "integer",
             "title": "Token总配额"
           },
-          "remaining_quota": {
+          "used_quota": {
             "type": "integer",
-            "title": "Token余额"
+            "title": "Token使用量"
           }
         },
         "required": [
@@ -1565,7 +1570,7 @@
           "nickname",
           "role",
           "status",
-          "remaining_quota"
+          "used_quota"
         ],
         "title": "用户entity"
       },
@@ -1877,9 +1882,9 @@
             "type": "integer",
             "title": "Token总配额"
           },
-          "remaining_quota": {
+          "used_quota": {
             "type": "integer",
-            "title": "Token余额"
+            "title": "Token使用量"
           }
         },
         "title": "用户详细信息",
@@ -1889,7 +1894,7 @@
           "nickname",
           "role",
           "total_quota",
-          "remaining_quota"
+          "used_quota"
         ]
       },
       "stt_response": {

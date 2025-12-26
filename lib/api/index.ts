@@ -169,7 +169,7 @@ export function requestTts(messageId: number, token: string) {
   return requestWithAuth(
     (authToken) =>
       apiRequest<Blob>(`/tts/request/${messageId}`, {
-        method: "POST",
+        method: "GET",
         token: authToken,
       }),
     token

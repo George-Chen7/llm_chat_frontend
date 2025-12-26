@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { XMarkdown } from "@ant-design/x-markdown";
 import { getTokenFromCookie } from "@/lib/api/client";
 import {
   getMeConversations,
@@ -120,10 +121,22 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [demoMessageMap, setDemoMessageMap] =
     useState<Record<number, MessageDetail[]>>(demoMessagesSeed);
+  const [isMicSupported, setIsMicSupported] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     // token 由登录页写入 cookie，页面加载时从 cookie 读取。
     setToken(getTokenFromCookie());
+  }, []);
+
+  useEffect(() => {
+    const supported =
+      typeof navigator !== "undefined" &&
+      !!navigator.mediaDevices?.getUserMedia &&
+      typeof MediaRecorder !== "undefined";
+    setIsMicSupported(supported);
   }, []);
 
   const activeConversation = useMemo(() => {
@@ -488,6 +501,51 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
     }
   };
 
+  const handleMicToggle = async () => {
+    if (!token) {
+      setError("未找到登录信息，请重新登录。");
+      return;
+    }
+    if (!isMicSupported) {
+      setError("当前设备不支持麦克风录制。");
+      return;
+    }
+    if (isDemoToken(token)) {
+      setInput("这是语音识别结果（演示）。");
+      return;
+    }
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      recorder.onstop = () => {
+        setIsRecording(false);
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(audioChunksRef.current, {
+          type: recorder.mimeType || "audio/webm",
+        });
+        const file = new File([blob], "recording.webm", { type: blob.type });
+        void handleStt(file);
+      };
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+    } catch (err) {
+      setError("无法访问麦克风，请检查权限。");
+      setIsMicSupported(false);
+      setIsRecording(false);
+    }
+  };
+
   const handleTts = async (messageId: number) => {
     if (!token) {
       setError("未找到登录信息，请重新登录。");
@@ -500,22 +558,24 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
     setLoading(true);
     setError(null);
     try {
-      const { data: audioBlob, token: nextToken } = await requestTts(
-        messageId,
-        token
-      );
-      updateToken(nextToken);
-      const audioUrl = URL.createObjectURL(audioBlob);
+      // 使用 <audio> 的 GET 请求触发后端流式播放（依赖 Cookie 鉴权）。
+      const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
+      const audioUrl = `${baseUrl}/tts/request/${messageId}`;
       const audio = new Audio(audioUrl);
-      audio.play();
-      audio.onended = () => URL.revokeObjectURL(audioUrl);
+      audio.crossOrigin = "use-credentials";
+      audio.onplay = () => setLoading(false);
+      audio.onended = () => setLoading(false);
+      audio.onerror = () => {
+        setLoading(false);
+        setError("语音播放失败");
+      };
+      await audio.play();
     } catch (err) {
       if (err instanceof AuthExpiredError) {
         handleAuthExpired(err.message);
         return;
       }
       setError(err instanceof Error ? err.message : "语音播放失败");
-    } finally {
       setLoading(false);
     }
   };
@@ -608,8 +668,8 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
                 <div
                   className={`max-w-2xl rounded-2xl p-4 shadow-sm ${
                     isAssistant
-                      ? "ml-auto bg-slate-900 text-white"
-                      : "bg-white"
+                      ? "bg-white"
+                      : "ml-auto bg-slate-900 text-white"
                   }`}
                   key={message.message_id}
                 >
@@ -625,27 +685,61 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
                       </button>
                     )}
                   </div>
-                  <p
+                  <div
                     className={`mt-2 text-sm ${
-                      isAssistant ? "text-slate-100" : "text-slate-600"
+                      isAssistant ? "text-slate-800" : "text-slate-100"
                     }`}
                   >
-                    {message.content}
-                  </p>
+                    {isAssistant ? <XMarkdown>{message.content}</XMarkdown> : message.content}
+                  </div>
                   {message.attachments.length > 0 && (
-                    <div className="mt-3 space-y-2 text-xs text-slate-400">
-                      {message.attachments.map((item) => (
-                        <div
-                          className={`rounded-lg border px-3 py-2 ${
-                            isAssistant
-                              ? "border-white/20"
-                              : "border-slate-200"
-                          }`}
-                          key={item.attachment_id}
-                        >
-                          附件：{item.attachment_type} | {item.mime_type}
-                        </div>
-                      ))}
+                    <div className="mt-3 space-y-3 text-xs text-slate-400">
+                      {message.attachments.map((item) => {
+                        const isImage = item.mime_type.startsWith("image/");
+                        const isVideo = item.mime_type.startsWith("video/");
+                        const isAudio = item.mime_type.startsWith("audio/");
+
+                        return (
+                          <div
+                            className={`rounded-lg border px-3 py-2 ${
+                              isAssistant
+                                ? "border-white/20"
+                                : "border-slate-200"
+                            }`}
+                            key={item.attachment_id}
+                          >
+                            {isImage && (
+                              <img
+                                alt="附件图片"
+                                className="max-h-64 w-auto rounded-md"
+                                src={item.url_or_path}
+                              />
+                            )}
+                            {isVideo && (
+                              <video
+                                className="max-h-64 w-full rounded-md"
+                                controls
+                                src={item.url_or_path}
+                              />
+                            )}
+                            {isAudio && (
+                              <audio className="w-full" controls src={item.url_or_path} />
+                            )}
+                            {!isImage && !isVideo && !isAudio && (
+                              <a
+                                className={`text-xs underline ${
+                                  isAssistant ? "text-slate-700" : "text-slate-100"
+                                }`}
+                                href={item.url_or_path}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                下载附件：{item.mime_type}
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -671,33 +765,55 @@ export default function ChatClient({ initialConversationId }: ChatClientProps) {
                   type="file"
                 />
               </label>
-              <label className="cursor-pointer rounded-full border border-slate-200 px-3 py-1">
-                语音识别
-                <input
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) {
-                      void handleStt(file);
-                    }
-                    event.currentTarget.value = "";
-                  }}
-                  type="file"
-                  accept="audio/*"
-                />
-              </label>
+              <button
+                className="rounded-full border border-slate-200 px-3 py-1 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={!isMicSupported}
+                onClick={handleMicToggle}
+                type="button"
+              >
+                {isRecording ? "停止录音" : "语音识别"}
+              </button>
               <span>已选附件：{attachmentIds.length}</span>
             </div>
             {uploadedAttachments.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-                {uploadedAttachments.map((item) => (
-                  <span
-                    className="rounded-full border border-slate-200 px-3 py-1"
-                    key={item.attachment_id}
-                  >
-                    {item.attachment_type} | {item.mime_type}
-                  </span>
-                ))}
+                {uploadedAttachments.map((item) => {
+                  const isImage = item.mime_type.startsWith("image/");
+                  return (
+                    <div
+                      className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1"
+                      key={item.attachment_id}
+                    >
+                      {isImage && (
+                        <img
+                          alt="附件预览"
+                          className="h-6 w-6 rounded object-cover"
+                          src={item.url_or_path}
+                        />
+                      )}
+                      <span>
+                        {item.attachment_type} | {item.mime_type}
+                      </span>
+                      <button
+                        className="rounded-full border border-slate-200 px-2 py-0.5 text-xs"
+                        onClick={() => {
+                          setUploadedAttachments((prev) =>
+                            prev.filter(
+                              (attachment) =>
+                                attachment.attachment_id !== item.attachment_id
+                            )
+                          );
+                          setAttachmentIds((prev) =>
+                            prev.filter((id) => id !== item.attachment_id)
+                          );
+                        }}
+                        type="button"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
             <textarea
